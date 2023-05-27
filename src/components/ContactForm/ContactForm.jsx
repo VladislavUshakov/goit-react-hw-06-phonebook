@@ -1,11 +1,13 @@
 import { Form, ErrorMessage, LabelText, Button } from './ContactForm.styles';
 import { Formik, Field } from 'formik';
-import PropTypes from 'prop-types';
-
+import { Report } from 'notiflix/build/notiflix-report-aio';
+import { useDispatch, useSelector } from 'react-redux';
+import { addContact } from '../../redux/contactsSlice';
+import { getContacts } from '../../redux/selectors';
 import * as yup from 'yup';
 import 'yup-phone';
 
-export const ContactForm = ({ onSubmit }) => {
+export const ContactForm = () => {
   const initialValues = { name: '', number: '' };
   const validationSchema = yup.object().shape({
     name: yup
@@ -18,11 +20,30 @@ export const ContactForm = ({ onSubmit }) => {
     number: yup.string().phone('UA').required(),
   });
 
+  const dispatch = useDispatch();
+  const currentContacts = useSelector(getContacts);
+
+  const formHandler = (newContact, { resetForm }) => {
+    const isNewContact = !currentContacts.find(
+      ({ name }) => name.toLowerCase() === newContact.name.toLowerCase()
+    );
+
+    if (!isNewContact) {
+      Report.failure(`${newContact.name} is already in contacts`, '', 'Okey', {
+        position: 'center-bottom',
+      });
+      return;
+    }
+
+    dispatch(addContact(newContact));
+    resetForm();
+  };
+
   return (
     <Formik
       initialValues={initialValues}
       validationSchema={validationSchema}
-      onSubmit={onSubmit}
+      onSubmit={formHandler}
     >
       <Form>
         <label>
@@ -39,8 +60,4 @@ export const ContactForm = ({ onSubmit }) => {
       </Form>
     </Formik>
   );
-};
-
-ContactForm.propTypes = {
-  onSubmit: PropTypes.func.isRequired,
 };
